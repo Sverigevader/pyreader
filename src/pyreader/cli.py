@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import textwrap
 
 from .ai import AIProvider, NoopProvider
@@ -8,6 +9,7 @@ from .epub import EpubBook, load_epub
 from .providers import OpenAICompatibleProvider
 
 DISPLAY_WIDTH = 80
+DISPLAY_HEIGHT = 24
 
 
 def _print_help() -> None:
@@ -29,23 +31,35 @@ def _print_help() -> None:
     )
 
 
-def _render_chapter(book: EpubBook, idx: int) -> None:
-    def wrap_text(text: str, width: int = DISPLAY_WIDTH) -> str:
-        wrapped_paragraphs: list[str] = []
-        for paragraph in text.split("\n"):
-            if not paragraph.strip():
-                wrapped_paragraphs.append("")
-            else:
-                wrapped_paragraphs.append(
-                    textwrap.fill(paragraph.strip(), width=width, replace_whitespace=True)
-                )
-        return "\n".join(wrapped_paragraphs)
+def _wrap_text(text: str, width: int) -> str:
+    wrapped_paragraphs: list[str] = []
+    for paragraph in text.split("\n"):
+        if not paragraph.strip():
+            wrapped_paragraphs.append("")
+        else:
+            wrapped_paragraphs.append(
+                textwrap.fill(paragraph.strip(), width=width, replace_whitespace=True)
+            )
+    return "\n".join(wrapped_paragraphs)
 
+
+def _render_chapter(book: EpubBook, idx: int) -> None:
+    term = shutil.get_terminal_size(fallback=(DISPLAY_WIDTH, DISPLAY_HEIGHT))
+    width = max(20, term.columns)
+    page_lines = max(5, term.lines - 2)
     chapter = book.chapters[idx]
     print(f"\n[{idx + 1}] {chapter.title} ({chapter.href})\n")
-    preview = chapter.text[:4000]
-    rendered = wrap_text(preview)
-    print(rendered + ("\n..." if len(chapter.text) > 4000 else ""))
+    rendered = _wrap_text(chapter.text, width=width)
+    lines = rendered.splitlines()
+
+    for start in range(0, len(lines), page_lines):
+        page = lines[start : start + page_lines]
+        print("\n".join(page))
+        if start + page_lines >= len(lines):
+            break
+        action = input("--More-- [Enter=next, q=quit] ").strip().lower()
+        if action in {"q", "quit"}:
+            break
 
 
 def run_reader(book: EpubBook, ai: AIProvider) -> None:
