@@ -7,6 +7,8 @@ from .ai import AIProvider, NoopProvider
 from .epub import EpubBook, load_epub
 from .providers import OpenAICompatibleProvider
 
+DISPLAY_WIDTH = 80
+
 
 def _print_help() -> None:
     print(
@@ -28,9 +30,22 @@ def _print_help() -> None:
 
 
 def _render_chapter(book: EpubBook, idx: int) -> None:
+    def wrap_text(text: str, width: int = DISPLAY_WIDTH) -> str:
+        wrapped_paragraphs: list[str] = []
+        for paragraph in text.split("\n"):
+            if not paragraph.strip():
+                wrapped_paragraphs.append("")
+            else:
+                wrapped_paragraphs.append(
+                    textwrap.fill(paragraph.strip(), width=width, replace_whitespace=True)
+                )
+        return "\n".join(wrapped_paragraphs)
+
     chapter = book.chapters[idx]
     print(f"\n[{idx + 1}] {chapter.title} ({chapter.href})\n")
-    print(chapter.text[:4000] + ("\n..." if len(chapter.text) > 4000 else ""))
+    preview = chapter.text[:4000]
+    rendered = wrap_text(preview)
+    print(rendered + ("\n..." if len(chapter.text) > 4000 else ""))
 
 
 def run_reader(book: EpubBook, ai: AIProvider) -> None:
