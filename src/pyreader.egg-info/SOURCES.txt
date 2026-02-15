@@ -11,5 +11,7 @@ src/pyreader.egg-info/PKG-INFO
 src/pyreader.egg-info/SOURCES.txt
 src/pyreader.egg-info/dependency_links.txt
 src/pyreader.egg-info/entry_points.txt
+src/pyreader.egg-info/requires.txt
 src/pyreader.egg-info/top_level.txt
+tests/test_cli.py
 tests/test_text_utils.py

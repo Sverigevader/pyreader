@@ -11,6 +11,9 @@ requires-python = ">=3.10"
 authors = [{ name = "You" }]
 dependencies = []
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
 [project.scripts]
 pyreader = "pyreader.cli:main"
 

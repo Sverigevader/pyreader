@@ -5,6 +5,8 @@ Summary: Terminal EPUB reader with LLM-ready architecture
 Author: You
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
 
 # pyreader
 

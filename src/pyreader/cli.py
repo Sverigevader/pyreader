@@ -4,6 +4,11 @@ import argparse
 import shutil
 import textwrap
 
+try:
+    import readline
+except ImportError:  # pragma: no cover - platform dependent
+    readline = None  # type: ignore[assignment]
+
 from .ai import AIProvider, NoopProvider
 from .epub import EpubBook, load_epub
 from .providers import OpenAICompatibleProvider
@@ -71,6 +76,8 @@ def run_reader(book: EpubBook, ai: AIProvider) -> None:
         raw = input("\npyreader> ").strip()
         if not raw:
             continue
+        if readline is not None:
+            readline.add_history(raw)
 
         parts = raw.split(maxsplit=1)
         cmd = parts[0].lower()
