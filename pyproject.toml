@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyreader"
+version = "0.1.0"
+description = "Terminal EPUB reader with LLM-ready architecture"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "You" }]
+dependencies = []
+
+[project.scripts]
+pyreader = "pyreader.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

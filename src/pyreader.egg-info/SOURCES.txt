@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/pyreader/__init__.py
+src/pyreader/ai.py
+src/pyreader/cli.py
+src/pyreader/epub.py
+src/pyreader/models.py
+src/pyreader/providers.py
+src/pyreader/text_utils.py
+src/pyreader.egg-info/PKG-INFO
+src/pyreader.egg-info/SOURCES.txt
+src/pyreader.egg-info/dependency_links.txt
+src/pyreader.egg-info/entry_points.txt
+src/pyreader.egg-info/top_level.txt
+tests/test_text_utils.py
