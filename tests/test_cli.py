@@ -1,6 +1,6 @@
 import os
 
-from pyreader.cli import _render_chapter
+from pyreader.cli import _compute_next_offset, _render_chapter, run_reader
 from pyreader.epub import EpubBook
 from pyreader.models import BookMeta, Chapter
 
@@ -19,42 +19,59 @@ def _make_book(chapter_text: str) -> EpubBook:
     )
 
 
-def test_render_chapter_paginates_by_terminal_height(monkeypatch, capsys) -> None:
-    book = _make_book("\n".join(f"line {i}" for i in range(1, 8)))
-    prompts: list[str] = []
+def test_compute_next_offset_supports_line_and_half_page_navigation() -> None:
+    assert _compute_next_offset(offset=0, key="down", line_count=20, page_lines=8) == 1
+    assert _compute_next_offset(offset=1, key="up", line_count=20, page_lines=8) == 0
+    assert _compute_next_offset(offset=0, key="half_down", line_count=20, page_lines=8) == 4
+    assert _compute_next_offset(offset=8, key="half_up", line_count=20, page_lines=8) == 4
 
-    monkeypatch.setattr("pyreader.cli.shutil.get_terminal_size", lambda fallback: os.terminal_size((80, 8)))
 
-    def fake_input(prompt: str) -> str:
-        prompts.append(prompt)
-        return ""
+def test_compute_next_offset_clamps_to_bounds() -> None:
+    assert _compute_next_offset(offset=0, key="up", line_count=12, page_lines=8) == 0
+    assert _compute_next_offset(offset=4, key="down", line_count=12, page_lines=8) == 4
+    assert _compute_next_offset(offset=4, key="half_down", line_count=12, page_lines=8) == 4
+    assert _compute_next_offset(offset=0, key="half_up", line_count=12, page_lines=8) == 0
 
-    monkeypatch.setattr("builtins.input", fake_input)
 
-    _render_chapter(book, 0)
+def test_render_chapter_reacts_to_keys(monkeypatch, capsys) -> None:
+    book = _make_book("\n".join(f"line {i}" for i in range(1, 13)))
+
+    monkeypatch.setattr(
+        "pyreader.cli.shutil.get_terminal_size",
+        lambda fallback: os.terminal_size((80, 10)),
+    )
+
+    keys = iter(["half_down", "half_down", "half_down", "quit"])
+    _render_chapter(book, 0, key_reader=lambda: next(keys), clear_screen=False)
     out = capsys.readouterr().out
 
     assert "line 1" in out
-    assert "line 7" in out
-    assert prompts == ["--More-- [Enter=next, q=quit] "]
+    assert "line 10" in out
+    assert "Keys: ↑/↓ or j/k line  d/u half-page  q quit" in out
 
 
-def test_render_chapter_quit_stops_after_first_page(monkeypatch, capsys) -> None:
-    book = _make_book("\n".join(f"line {i}" for i in range(1, 15)))
-    prompts: list[str] = []
+class _RecorderAI:
+    def __init__(self) -> None:
+        self.contexts: list[str] = []
+        self.questions: list[str] = []
 
-    monkeypatch.setattr("pyreader.cli.shutil.get_terminal_size", lambda fallback: os.terminal_size((80, 8)))
+    def answer(self, question: str, context: str) -> str:
+        self.questions.append(question)
+        self.contexts.append(context)
+        return "answer-ok"
 
-    def fake_input(prompt: str) -> str:
-        prompts.append(prompt)
-        return "q"
 
-    monkeypatch.setattr("builtins.input", fake_input)
+def test_ask_uses_last_visible_viewport(monkeypatch, capsys) -> None:
+    book = _make_book("\n".join(f"line {i}" for i in range(1, 30)))
+    ai = _RecorderAI()
 
-    _render_chapter(book, 0)
+    commands = iter(["read 1", "ask what happened?", "exit"])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(commands))
+    monkeypatch.setattr("pyreader.cli._render_chapter", lambda *args, **kwargs: "VISIBLE-TEXT")
+
+    run_reader(book, ai)  # type: ignore[arg-type]
     out = capsys.readouterr().out
 
-    assert "line 1" in out
-    assert "line 6" in out
-    assert "line 7" not in out
-    assert len(prompts) == 1
+    assert ai.questions == ["what happened?"]
+    assert ai.contexts == ["VISIBLE-TEXT"]
+    assert "answer-ok" in out

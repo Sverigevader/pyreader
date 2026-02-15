@@ -19,7 +19,7 @@ pip install -e .
 pyreader path/to/book.epub
 ```
 
-Use OpenAI-compatible provider:
+Use OpenAI provider:
 
 ```bash
 export OPENAI_API_KEY=your_key
@@ -36,7 +36,7 @@ Once launched, run `help` for commands.
 - `next`
 - `prev`
 - `search whales`
-- `ask Summarize this chapter`
+- `ask What happened in this scene?`
 
 ## LLM integration
 
@@ -46,3 +46,5 @@ The app includes an interface at `src/pyreader/ai.py`:
 - `NoopProvider` default implementation
 
 To integrate another model, add a new provider class implementing `answer(question, context)` and wire it in `src/pyreader/cli.py`.
+
+`ask` currently sends only the currently visible text window from the reader, not the full chapter.

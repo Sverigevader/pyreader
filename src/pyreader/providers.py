@@ -12,35 +12,43 @@ class OpenAICompatibleProvider(AIProvider):
 
     Expects:
     - base_url: e.g. https://api.openai.com/v1
-    - api_key in env
-    - chat completions endpoint at /chat/completions
+    - optional api_key in env
+    - configurable chat endpoint path
     """
 
-    def __init__(self, model: str, api_key_env: str = "OPENAI_API_KEY", base_url: str = "https://api.openai.com/v1") -> None:
+    def __init__(
+        self,
+        model: str,
+        api_key_env: str = "OPENAI_API_KEY",
+        base_url: str = "https://api.openai.com/v1",
+        chat_path: str = "/chat/completions",
+        system_prompt: str = "You answer questions about book text context only.",
+    ) -> None:
         self.model = model
         self.base_url = base_url.rstrip("/")
+        if not chat_path.startswith("/"):
+            chat_path = f"/{chat_path}"
+        self.chat_path = chat_path
         self.api_key = os.getenv(api_key_env, "")
+        self.system_prompt = system_prompt
 
     def answer(self, question: str, context: str) -> str:
-        if not self.api_key:
-            return "Missing API key. Set OPENAI_API_KEY (or configure another provider)."
-
         payload = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": "You answer questions about book text context only."},
+                {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
             ],
             "temperature": 0.2,
         }
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
 
         req = request.Request(
-            url=f"{self.base_url}/chat/completions",
+            url=f"{self.base_url}{self.chat_path}",
             data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-            },
+            headers=headers,
             method="POST",
         )
 
